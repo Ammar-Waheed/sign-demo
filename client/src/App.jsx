@@ -9,127 +9,7 @@ function App() {
     const web3 = useRef()
     const accounts = useRef()
     const contract = useRef()
-    // useEffect(() => {
-    //     ;(async () => {
-    //         const w3 = new Web3(window.ethereum)
-    //         const accounts = await w3.eth.requestAccounts()
-    //         const contract = new w3.eth.Contract(
-    //             verify.abi,
-    //             verify.networks["5"].address
-    //         )
-    //         // const msg = JSON.stringify({
-    //         //     init: {
-    //         //         tokens: [
-    //         //             {
-    //         //                 id: 0,
-    //         //                 type: "NFT",
-    //         //                 meta_uri:
-    //         //                     "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu",
-    //         //                 address:
-    //         //                     "0xcB8d1260F9c92A3A545d409466280fFdD7AF7042"
-    //         //             },
-    //         //             {
-    //         //                 id: 1,
-    //         //                 type: "NFT",
-    //         //                 meta_uri:
-    //         //                     "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pGEIDBAi",
-    //         //                 address: "0xcGHU1260F9c92A3A545d409466280fFdD7AGHU2"
-    //         //             }
-    //         //         ]
-    //         //     },
-    //         //     accept: {
-    //         //         tokens: [
-    //         //             {
-    //         //                 id: 5,
-    //         //                 type: "NFT",
-    //         //                 meta_uri:
-    //         //                     "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu",
-    //         //                 address:
-    //         //                     "0xcGHUT760F9c92A3A545d409466280fFdD7Agyui8"
-    //         //             },
-    //         //             {
-    //         //                 id: 6,
-    //         //                 type: "NFT",
-    //         //                 meta_uri:
-    //         //                     "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pGEIDBAi",
-    //         //                 address: "0xHUI76260F9c92A3A545d409466280fFdD7AGHU2"
-    //         //             }
-    //         //         ]
-    //         //     }
-    //         // })
-    //         const msg = 10
-    //         const msgParams = JSON.stringify({
-    //             types: {
-    //                 EIP712Domain: [
-    //                     { name: "name", type: "string" },
-    //                     { name: "version", type: "string" },
-    //                     { name: "chainId", type: "uint256" },
-    //                     { name: "verifyingContract", type: "address" }
-    //                 ],
 
-    //                 set: [{ name: "msg", type: "uint" }]
-    //             },
-
-    //             //make sure to replace verifyingContract with address of deployed contract
-
-    //             primaryType: "set",
-    //             domain: {
-    //                 name: "SetTest",
-    //                 version: "1",
-    //                 chainId: "5",
-    //                 verifyingContract: verify.networks["5"].address
-    //             },
-
-    //             message: {
-    //                 msg
-    //             }
-    //         })
-    //         let params = [accounts[0], msgParams]
-    //         let method = "eth_signTypedData_v4"
-    //         w3.currentProvider.sendAsync(
-    //             {
-    //                 method,
-    //                 params,
-    //                 from: accounts[0]
-    //             },
-    //             async (err, result) => {
-    //                 if (err) {
-    //                     console.error(err)
-    //                 } else {
-    //                     const signature = result.result.substring(2)
-
-    //                     const r = "0x" + signature.substring(0, 64)
-
-    //                     let s = "0x" + signature.substring(64, 128)
-
-    //                     const v = parseInt(signature.substring(128, 130), 16)
-
-    //                     console.log("r:", r)
-
-    //                     console.log("s:", s)
-
-    //                     console.log("v:", v)
-
-    //                     console.log("msg", msg)
-
-    //                     try {
-    //                         const res = await contract.methods
-    //                             .executeSetIfSignatureMatch(
-    //                                 v,
-    //                                 r,
-    //                                 s,
-    //                                 accounts[0],msg
-    //                             )
-    //                             .send({ from: accounts[0] })
-    //                         console.log(res)
-    //                     } catch (err) {
-    //                         console.error(err)
-    //                     }
-    //                 }
-    //             }
-    //         )
-    //     })()
-    // }, [])
     useEffect(() => {
         ;(async () => {
             try {
@@ -163,12 +43,12 @@ function App() {
     }, [])
 
     const signData = async () => {
-        var signer = accounts.current[0]
-        var milsec_deadline = Date.now() / 1000 + 100
+        let signer = accounts.current[0]
+        let milsec_deadline = Date.now() / 1000 + 100
         console.log(milsec_deadline, "milisec")
-        var deadline = parseInt(String(milsec_deadline).slice(0, 10))
+        let deadline = parseInt(String(milsec_deadline).slice(0, 10))
         console.log(deadline, "sec")
-        var x = JSON.stringify({
+        let msg = JSON.stringify({
             init: {
                 tokens: [
                     {
@@ -206,7 +86,6 @@ function App() {
                 ]
             }
         })
-
         web3.current.currentProvider.sendAsync(
             {
                 method: "net_version",
@@ -214,6 +93,10 @@ function App() {
                 jsonrpc: "2.0"
             },
             function (err, result) {
+                if (err) {
+                    console.error(err)
+                    return
+                }
                 const netId = result.result
                 console.log("netId", netId)
                 const msgParams = JSON.stringify({
@@ -226,27 +109,26 @@ function App() {
                         ],
                         set: [
                             { name: "sender", type: "address" },
-                            { name: "x", type: "string" },
+                            { name: "msg", type: "string" },
                             { name: "deadline", type: "uint" }
                         ]
                     },
                     //make sure to replace verifyingContract with address of deployed contract
                     primaryType: "set",
                     domain: {
-                        name: "SetTest",
-                        version: "1",
+                        name: "test",
+                        version: "1.0",
                         chainId: netId,
-                        verifyingContract:
-                            "0x7E27293ee7Cbdb124cf7b10d3293429236f29cd8"
+                        verifyingContract: verify.networks["5"].address
                     },
                     message: {
                         sender: signer,
-                        x,
+                        msg,
                         deadline
                     }
                 })
 
-                var from = signer
+                let from = signer
 
                 console.log(
                     "CLICKED, SENDING PERSONAL SIGN REQ",
@@ -254,9 +136,10 @@ function App() {
                     from,
                     msgParams
                 )
-                var params = [from, msgParams]
+
+                let params = [from, msgParams]
                 console.dir(params)
-                var method = "eth_signTypedData_v4"
+                let method = "eth_signTypedData_v4"
 
                 web3.current.currentProvider.sendAsync(
                     {
@@ -274,23 +157,15 @@ function App() {
                             "TYPED SIGNED:" + JSON.stringify(result.result)
                         )
 
-                        //getting r s v from a signature
-                        const signature = result.result.substring(2)
-                        const r = "0x" + signature.substring(0, 64)
-                        const s = "0x" + signature.substring(64, 128)
-                        const v = parseInt(signature.substring(128, 130), 16)
-                        console.log("r:", r)
-                        console.log("s:", s)
-                        console.log("v:", v)
+                        const signature = result.result
+                        console.log("sign:", signature)
                         try {
                             const res = await contract.current.methods
                                 .executeSetIfSignatureMatch(
-                                    v,
-                                    r,
-                                    s,
                                     signer,
                                     deadline,
-                                    x
+                                    msg,
+                                    signature
                                 )
                                 .send({ from: accounts.current[0] })
                             console.log(res)
@@ -301,6 +176,7 @@ function App() {
                                     address: accounts.current[0]
                                 }
                             )
+                            console.log(response)
                         } catch (err) {
                             console.error(err)
                         }
