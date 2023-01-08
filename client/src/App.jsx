@@ -21,8 +21,8 @@ function App() {
     const sign = useRef("")
     const timestamp = useRef()
     const meta = useRef({
-        init: {
-            address: "0x79f553dcE43134F45ce87977f1a09Ad9B9A4D3Ea",
+        accept: {
+            address: "0x00A7e65D40f030efeB90FBceDF385fbba24a70dE",
             tokens: [
                 {
                     id: 1,
@@ -33,8 +33,8 @@ function App() {
                 }
             ]
         },
-        accept: {
-            address: "0x00A7e65D40f030efeB90FBceDF385fbba24a70dE",
+        init: {
+            address: "0x79f553dcE43134F45ce87977f1a09Ad9B9A4D3Ea",
             tokens: [
                 {
                     id: 2,
@@ -46,6 +46,46 @@ function App() {
             ]
         }
     })
+    const abi = useRef([
+        {
+            inputs: [
+                {
+                    internalType: "address",
+                    name: "to",
+                    type: "address"
+                },
+                {
+                    internalType: "uint256",
+                    name: "tokenId",
+                    type: "uint256"
+                }
+            ],
+            name: "approve",
+            outputs: [],
+            stateMutability: "nonpayable",
+            type: "function"
+        },
+        {
+            inputs: [
+                {
+                    internalType: "uint256",
+                    name: "tokenId",
+                    type: "uint256"
+                }
+            ],
+            name: "getApproved",
+            outputs: [
+                {
+                    internalType: "address",
+                    name: "",
+                    type: "address"
+                }
+            ],
+            stateMutability: "view",
+            type: "function",
+            constant: true
+        }
+    ])
 
     useEffect(() => {
         initNfts.current = meta.current.init.tokens.map((token) => {
@@ -193,22 +233,31 @@ function App() {
         try {
             if (user === "init") {
                 initNfts.current.forEach(async (nft) => {
-                    const spender = await contracts.current[1].methods
+                    const contract = new web3.current.eth.Contract(
+                        abi.current,
+                        nft.address
+                    )
+                    console.log(contract)
+                    const spender = await contract.methods
                         .getApproved(nft.id)
                         .call()
                     if (spender !== swap.networks["5"].address) {
-                        contracts.current[1].methods
+                        contract.methods
                             .approve(swap.networks["5"].address, nft.id)
                             .send({ from: accounts.current[0] })
                     }
                 })
             } else {
                 acceptNfts.current.forEach(async (nft) => {
-                    const spender = await contracts.current[1].methods
+                    const contract = new web3.current.eth.Contract(
+                        abi.current,
+                        nft.address
+                    )
+                    const spender = await contract.methods
                         .getApproved(nft.id)
                         .call()
                     if (spender !== swap.networks["5"].address) {
-                        contracts.current[1].methods
+                        contract.methods
                             .approve(swap.networks["5"].address, nft.id)
                             .send({ from: accounts.current[0] })
                     }
@@ -216,52 +265,6 @@ function App() {
             }
         } catch (err) {
             console.error(err)
-        }
-    }
-
-    const transfer = async () => {
-        let long, short
-        if (initNfts.current.length > acceptNfts.current.length) {
-            long = initNfts
-            short = acceptNfts
-        } else {
-            short = initNfts
-            long = acceptNfts
-        }
-        for (let i = 0; i < long.current.length; ) {
-            contracts.current[0].methods
-                .transfer(
-                    long.current[i].address,
-                    meta.current.init.address,
-                    meta.current.accept.address,
-                    long.current[i].id
-                )
-                .send({ from: accounts.current[0] }, (err, res) => {
-                    if (err) {
-                        console.error(err)
-                        return
-                    }
-                    console.log(res)
-                    if (i < short.current.length) {
-                        // setTimeout(() => {
-                        contracts.current[0].methods
-                            .transfer(
-                                short.current[i].address,
-                                meta.current.init.address,
-                                meta.current.accept.address,
-                                short.current[i].id
-                            )
-                            .send({ from: accounts.current[0] }, (err, res) => {
-                                if (err) {
-                                    console.error(err)
-                                    return
-                                }
-                                console.log(res)
-                                i++
-                            })
-                        // }, 5000)
-                    }
-                })
         }
     }
 
@@ -327,7 +330,9 @@ function App() {
     const accept = async () => {
         try {
             await approve("accept")
-            await acceptTransfer()
+            setTimeout(() => {
+                acceptTransfer()
+            }, 6000)
             setTimeout(() => {
                 initTransfer()
             }, 15000)
