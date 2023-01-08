@@ -3,7 +3,7 @@
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  row-gap: 10vh;
   font-size: 1.6rem;
   --primary-color: #1266cc;
   --secondary-color: #f96400;
@@ -11,6 +11,7 @@
   --gray: #999;
   --light-gray: #e0e0e0;
   --dark-gray: #777;
+  flex-direction:column;
 }
 
 #App .container {

@@ -1,16 +1,59 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import Web3 from "web3"
 import axios from "axios"
-import verify from "./contracts/Verify.json"
+import swap from "./contracts/Swap.json"
+import nft from "./contracts/NFT.json"
 import "./App.css"
 import { useRef } from "react"
 
 function App() {
+    const [ID, setID] = useState(NaN)
+    const [owner, setOwner] = useState("")
+    const [ts, setTs] = useState()
+    const nftOwner = useRef("")
+    const accounts = useRef([])
+    const uri = useRef("")
+    const id = useRef(NaN)
     const web3 = useRef()
-    const accounts = useRef()
-    const contract = useRef()
+    const contracts = useRef([])
+    const initNfts = useRef([])
+    const acceptNfts = useRef([])
+    const sign = useRef("")
+    const timestamp = useRef()
+    const meta = useRef({
+        init: {
+            address: "0x79f553dcE43134F45ce87977f1a09Ad9B9A4D3Ea",
+            tokens: [
+                {
+                    id: 1,
+                    type: "NFT",
+                    meta_uri:
+                        "https://bafybeicf6ius4jkraw3lnvzbvtkf2wt67xdvpp657ptewwqplos3a676fu.ipfs.w3s.link/squirt.json",
+                    address: nft.networks["5"].address
+                }
+            ]
+        },
+        accept: {
+            address: "0x00A7e65D40f030efeB90FBceDF385fbba24a70dE",
+            tokens: [
+                {
+                    id: 2,
+                    type: "NFT",
+                    meta_uri:
+                        "https://bafybeihsgl6xtaaisnvetxm5f5thgvfrlaqfm5d762tgr3pni63bkddgci.ipfs.w3s.link/pika.json",
+                    address: nft.networks["5"].address
+                }
+            ]
+        }
+    })
 
     useEffect(() => {
+        initNfts.current = meta.current.init.tokens.map((token) => {
+            return { id: token.id, address: token.address }
+        })
+        acceptNfts.current = meta.current.accept.tokens.map((token) => {
+            return { id: token.id, address: token.address }
+        })
         ;(async () => {
             try {
                 // Get network provider and web3 instance.
@@ -20,18 +63,24 @@ function App() {
                 const accountList = await w3.eth.getAccounts()
 
                 // Get the contract instance.
-                const networkId = await w3.eth.net.getId()
-                const deployedNetwork = verify.networks[networkId]
-                const instance = new w3.eth.Contract(
-                    verify.abi,
-                    deployedNetwork && deployedNetwork.address
+                const swapContract = new w3.eth.Contract(
+                    swap.abi,
+                    swap.networks["5"].address
+                )
+                const nftContract = new w3.eth.Contract(
+                    nft.abi,
+                    nft.networks["5"].address
                 )
                 // Set web3, accounts, and contract to the state, and then proceed with an
                 // example of interacting with the contract's methods.
                 web3.current = w3
                 accounts.current = accountList
-                contract.current = instance
-                signData()
+                contracts.current.push(swapContract)
+                contracts.current.push(nftContract)
+                window.ethereum.on(
+                    "accountsChanged",
+                    async () => (accounts.current = await w3.eth.getAccounts())
+                )
             } catch (error) {
                 // Catch any errors for any of the above operations.
                 alert(
@@ -48,44 +97,10 @@ function App() {
         console.log(milsec_deadline, "milisec")
         let deadline = parseInt(String(milsec_deadline).slice(0, 10))
         console.log(deadline, "sec")
-        let msg = JSON.stringify({
-            init: {
-                tokens: [
-                    {
-                        id: 0,
-                        type: "NFT",
-                        meta_uri:
-                            "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu",
-                        address: "0xcB8d1260F9c92A3A545d409466280fFdD7AF7042"
-                    },
-                    {
-                        id: 1,
-                        type: "NFT",
-                        meta_uri:
-                            "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pGEIDBAi",
-                        address: "0xcGHU1260F9c92A3A545d409466280fFdD7AGHU2"
-                    }
-                ]
-            },
-            accept: {
-                tokens: [
-                    {
-                        id: 5,
-                        type: "NFT",
-                        meta_uri:
-                            "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu",
-                        address: "0xcGHUT760F9c92A3A545d409466280fFdD7Agyui8"
-                    },
-                    {
-                        id: 6,
-                        type: "NFT",
-                        meta_uri:
-                            "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pGEIDBAi",
-                        address: "0xHUI76260F9c92A3A545d409466280fFdD7AGHU2"
-                    }
-                ]
-            }
-        })
+        timestamp.current = deadline
+        setTs(deadline)
+
+        let msg = JSON.stringify(meta.current)
         web3.current.currentProvider.sendAsync(
             {
                 method: "net_version",
@@ -119,7 +134,7 @@ function App() {
                         name: "test",
                         version: "1.0",
                         chainId: netId,
-                        verifyingContract: verify.networks["5"].address
+                        verifyingContract: swap.networks["5"].address
                     },
                     message: {
                         sender: signer,
@@ -158,37 +173,250 @@ function App() {
                         )
 
                         const signature = result.result
+                        sign.current = signature
                         console.log("sign:", signature)
-                        try {
-                            const res = await contract.current.methods
-                                .executeSetIfSignatureMatch(
-                                    signer,
-                                    deadline,
-                                    msg,
-                                    signature
-                                )
-                                .send({ from: accounts.current[0] })
-                            console.log(res)
-                            const response = await axios.post(
-                                "http://localhost:3000/api/swaps/signature",
-                                {
-                                    sign: signature,
-                                    address: accounts.current[0]
-                                }
-                            )
-                            console.log(response)
-                        } catch (err) {
-                            console.error(err)
-                        }
+                        const response = await axios.post(
+                            "http://localhost:3000/api/swaps/signature",
+                            {
+                                sign: signature,
+                                address: accounts.current[0]
+                            }
+                        )
+                        console.log(response)
                     }
                 )
             }
         )
     }
 
+    const approve = async (user) => {
+        try {
+            if (user === "init") {
+                initNfts.current.forEach(async (nft) => {
+                    const spender = await contracts.current[1].methods
+                        .getApproved(nft.id)
+                        .call()
+                    if (spender !== swap.networks["5"].address) {
+                        contracts.current[1].methods
+                            .approve(swap.networks["5"].address, nft.id)
+                            .send({ from: accounts.current[0] })
+                    }
+                })
+            } else {
+                acceptNfts.current.forEach(async (nft) => {
+                    const spender = await contracts.current[1].methods
+                        .getApproved(nft.id)
+                        .call()
+                    if (spender !== swap.networks["5"].address) {
+                        contracts.current[1].methods
+                            .approve(swap.networks["5"].address, nft.id)
+                            .send({ from: accounts.current[0] })
+                    }
+                })
+            }
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const transfer = async () => {
+        let long, short
+        if (initNfts.current.length > acceptNfts.current.length) {
+            long = initNfts
+            short = acceptNfts
+        } else {
+            short = initNfts
+            long = acceptNfts
+        }
+        for (let i = 0; i < long.current.length; ) {
+            contracts.current[0].methods
+                .transfer(
+                    long.current[i].address,
+                    meta.current.init.address,
+                    meta.current.accept.address,
+                    long.current[i].id
+                )
+                .send({ from: accounts.current[0] }, (err, res) => {
+                    if (err) {
+                        console.error(err)
+                        return
+                    }
+                    console.log(res)
+                    if (i < short.current.length) {
+                        // setTimeout(() => {
+                        contracts.current[0].methods
+                            .transfer(
+                                short.current[i].address,
+                                meta.current.init.address,
+                                meta.current.accept.address,
+                                short.current[i].id
+                            )
+                            .send({ from: accounts.current[0] }, (err, res) => {
+                                if (err) {
+                                    console.error(err)
+                                    return
+                                }
+                                console.log(res)
+                                i++
+                            })
+                        // }, 5000)
+                    }
+                })
+        }
+    }
+
+    const acceptTransfer = async () => {
+        acceptNfts.current.forEach(async (nft) => {
+            await contracts.current[0].methods
+                .transfer(
+                    nft.address,
+                    meta.current.accept.address,
+                    meta.current.init.address,
+                    nft.id
+                )
+                .send({ from: accounts.current[0] })
+        })
+    }
+
+    const initTransfer = async () => {
+        initNfts.current.forEach(async (nft) => {
+            await contracts.current[0].methods
+                .transfer(
+                    nft.address,
+                    meta.current.init.address,
+                    meta.current.accept.address,
+                    nft.id
+                )
+                .send({ from: accounts.current[0] })
+        })
+    }
+
+    const signVerify = async () => {
+        try {
+            contracts.current[0].methods
+                .executeSetIfSignatureMatch(
+                    accounts.current[0],
+                    ts,
+                    JSON.stringify(meta.current),
+                    sign.current
+                )
+                .send({ from: accounts.current[0] }, async (err, res) => {
+                    if (err) {
+                        console.error(err)
+                    } else {
+                        console.log(res)
+                        setTimeout(() => {
+                            accept()
+                        }, 5000)
+                    }
+                })
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const initiate = async () => {
+        try {
+            await signData()
+            await approve("init")
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const accept = async () => {
+        try {
+            await approve("accept")
+            await acceptTransfer()
+            setTimeout(() => {
+                initTransfer()
+            }, 15000)
+            axios.patch("localhost:3000/api/swaps/", {
+                status: 2,
+                id: 33
+            })
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const safeAccept = async () => {
+        try {
+            await signVerify()
+            axios.patch("localhost:3000/api/swaps/", {
+                status: 2,
+                id: 33
+            })
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const mint = async (e) => {
+        e.preventDefault()
+        await contracts.current[1].methods
+            .mint(nftOwner.current, uri.current)
+            .send({ from: accounts.current[0] })
+        const id = await contracts.current[1].methods.getId().call()
+        console.log(id)
+        setID(id)
+    }
+
+    const getOwner = async (e) => {
+        e.preventDefault()
+        const owner = await contracts.current[1].methods
+            .ownerOf(id.current)
+            .call()
+        setOwner(owner)
+    }
+
+    const ownerHandle = (e) => {
+        nftOwner.current = e.target.value
+    }
+
+    const uriHandle = (e) => {
+        uri.current = e.target.value
+    }
+
+    const idHandle = (e) => {
+        id.current = e.target.valueAsNumber
+    }
+
     return (
         <div id="App">
-            <h1>Pvk Sign Test</h1>
+            <h1>NFT Swap Demo</h1>
+            <form>
+                <input
+                    type="text"
+                    name="owner"
+                    id="owner"
+                    placeholder="enter owner's address"
+                    onChange={ownerHandle}
+                />
+                <input
+                    type="text"
+                    name="uri"
+                    id="uri"
+                    placeholder="enter metadata uri"
+                    onChange={uriHandle}
+                />
+                <button onClick={mint}>Mint</button>
+            </form>
+            {!isNaN(ID) && <h3>Token ID: {ID}</h3>}
+            <form>
+                <input
+                    type="number"
+                    name="id"
+                    id="id"
+                    placeholder="enter nft id"
+                    onChange={idHandle}
+                />
+                <button onClick={getOwner}>Check Owner</button>
+            </form>
+            {owner !== "" && <h3>Owner: {owner}</h3>}
+            <button onClick={initiate}>Initiate</button>
+            <button onClick={accept}>Accept</button>
+            <button onClick={safeAccept}>Safe Accept</button>
         </div>
     )
 }

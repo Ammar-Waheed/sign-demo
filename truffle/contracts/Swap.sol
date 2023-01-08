@@ -2,18 +2,10 @@
 pragma solidity >=0.4.17 <0.9.0;
 
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-contract Verify is EIP712 {
+contract Swap is EIP712 {
   constructor() EIP712("test","1.0") {}
-  string public storedData;
-
-  function set(string memory msg) internal {
-    storedData = msg;
-  }
-
-  function get() public view returns (string memory) {
-    return storedData;
-  }
 
   function executeSetIfSignatureMatch(
     address sender,
@@ -33,7 +25,9 @@ contract Verify is EIP712 {
     address signer = ECDSA.recover(digest, signature);
     require(signer == sender, "MyFunction: invalid signature");
     require(signer != address(0), "ECDSA: invalid signature");
+  }
 
-    set(msg);
+  function transfer(address tkn, address from, address to, uint id) public{
+    IERC721(tkn).transferFrom(from,to,id);
   }
 }

@@ -1,5 +1,5 @@
-const Verify = artifacts.require("Verify")
+const Swap = artifacts.require("Swap")
 
 module.exports = function (deployer) {
-    deployer.deploy(Verify)
+    deployer.deploy(Swap)
 }
