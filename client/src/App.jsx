@@ -25,7 +25,7 @@ function App() {
             address: "0x00A7e65D40f030efeB90FBceDF385fbba24a70dE",
             tokens: [
                 {
-                    id: 1,
+                    id: 3,
                     type: "NFT",
                     meta_uri:
                         "https://bafybeicf6ius4jkraw3lnvzbvtkf2wt67xdvpp657ptewwqplos3a676fu.ipfs.w3s.link/squirt.json",
@@ -36,6 +36,13 @@ function App() {
         init: {
             address: "0x79f553dcE43134F45ce87977f1a09Ad9B9A4D3Ea",
             tokens: [
+                {
+                    id: 1,
+                    type: "NFT",
+                    meta_uri:
+                        "https://bafybeihsgl6xtaaisnvetxm5f5thgvfrlaqfm5d762tgr3pni63bkddgci.ipfs.w3s.link/pika.json",
+                    address: nft.networks["5"].address
+                },
                 {
                     id: 2,
                     type: "NFT",
@@ -171,7 +178,7 @@ function App() {
                     //make sure to replace verifyingContract with address of deployed contract
                     primaryType: "set",
                     domain: {
-                        name: "test",
+                        name: "swap up",
                         version: "1.0",
                         chainId: netId,
                         verifyingContract: swap.networks["5"].address
@@ -268,30 +275,40 @@ function App() {
         }
     }
 
-    const acceptTransfer = async () => {
-        acceptNfts.current.forEach(async (nft) => {
-            await contracts.current[0].methods
-                .transfer(
-                    nft.address,
-                    meta.current.accept.address,
-                    meta.current.init.address,
-                    nft.id
-                )
-                .send({ from: accounts.current[0] })
-        })
-    }
-
-    const initTransfer = async () => {
-        initNfts.current.forEach(async (nft) => {
-            await contracts.current[0].methods
-                .transfer(
-                    nft.address,
-                    meta.current.init.address,
-                    meta.current.accept.address,
-                    nft.id
-                )
-                .send({ from: accounts.current[0] })
-        })
+    const swapNfts = () => {
+        const encodedNfts = initNfts.current.map((nft) => (
+            web3.current.eth.abi.encodeParameters(
+                ["address", "uint"],
+                [nft.address, nft.id]
+            )
+        ))
+        contracts.current[0].methods
+            .transfer(
+                encodedNfts,
+                meta.current.init.address,
+                meta.current.accept.address
+            )
+            .send({ from: accounts.current[0] }, (err, res) => {
+                if (err) {
+                    console.error(err)
+                    return
+                }
+                const encodedNfts = acceptNfts.current.map((nft) => (
+                    web3.current.eth.abi.encodeParameters(
+                        ["address", "uint"],
+                        [nft.address, nft.id]
+                    )
+                ))
+                setTimeout(() => {
+                    contracts.current[0].methods
+                        .transfer(
+                            encodedNfts,
+                            meta.current.accept.address,
+                            meta.current.init.address
+                        )
+                        .send({ from: accounts.current[0] })
+                }, 10000)
+            })
     }
 
     const signVerify = async () => {
@@ -331,11 +348,8 @@ function App() {
         try {
             await approve("accept")
             setTimeout(() => {
-                acceptTransfer()
-            }, 6000)
-            setTimeout(() => {
-                initTransfer()
-            }, 15000)
+                swapNfts()
+            }, 10000);
             axios.patch("localhost:3000/api/swaps/", {
                 status: 2,
                 id: 33
@@ -389,7 +403,7 @@ function App() {
 
     return (
         <div id="App">
-            <h1>NFT Swap Demo</h1>
+            <h1>Swap Up Demo</h1>
             <form>
                 <input
                     type="text"

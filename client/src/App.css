@@ -142,3 +142,18 @@ hr {
   display: inline-block;
   margin: 2rem 1rem 0 0;
 }
+
+button{
+  margin: auto;
+  all: unset;
+  padding: 1vh 2vw;
+  background-color: #4598fd;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+}
+
+input{
+  margin: auto;
+  height: 4.5vh;
+}
