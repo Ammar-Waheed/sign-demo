@@ -274,7 +274,6 @@ function App() {
             console.error(err)
         }
     }
-
     const swapNfts = () => {
         const encodedNfts = initNfts.current.map((nft) => (
             web3.current.eth.abi.encodeParameters(
